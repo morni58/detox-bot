@@ -1,0 +1,57 @@
+# ============================================================
+# Detox Course — .gitignore
+# ============================================================
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Docker
+docker-compose.override.yml
+
+# Uploads
+uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif
+!miniapp/src/assets/**
+
+# Logs
+*.log
+logs/
+
+# SSL
+ssl/
+*.pem
+*.key
+*.crt
+
+# Database dumps
+*.dump
+*.sql.gz
+
+# OS
+Thumbs.db

@@ -1,0 +1,161 @@
+/* ============================================================
+ * 🌿 Detox Course — Global Styles
+ * ============================================================ */
+
+@import "tailwindcss";
+
+/* ── CSS Custom Properties (Design Tokens) ────────────── */
+
+:root {
+  /* Colors */
+  --color-primary: #10b981;
+  --color-primary-dark: #059669;
+  --color-success: #22c55e;
+  --color-success-dark: #16a34a;
+  --color-bg-light: #f8fafc;
+  --color-bg-dark: #0f172a;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #64748b;
+  --color-text-white: #ffffff;
+
+  /* Typography */
+  --font-family: 'Telegram Sans', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', 'Helvetica Neue', sans-serif;
+  --fw-heading: 600;
+  --fw-body: 400;
+
+  /* Spacing */
+  --space-xs: 8px;
+  --space-sm: 16px;
+  --space-md: 24px;
+  --space-lg: 32px;
+  --space-xl: 48px;
+  --space-2xl: 64px;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 12px 40px rgba(0, 0, 0, 0.15);
+  --shadow-primary: 0 4px 20px rgba(16, 185, 129, 0.35);
+  --shadow-success: 0 4px 24px rgba(34, 197, 94, 0.4);
+
+  /* Transitions */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* ── Reset & Base ─────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-family: var(--font-family);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-light);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* Prevent rubber-banding на iOS */
+  overscroll-behavior: none;
+}
+
+body {
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* Telegram Mini App: скрываем scrollbar */
+body::-webkit-scrollbar {
+  display: none;
+}
+body {
+  scrollbar-width: none;
+}
+
+/* ── Typography ───────────────────────────────────────── */
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: var(--fw-heading);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+p {
+  font-weight: var(--fw-body);
+  line-height: 1.6;
+}
+
+/* ── Images ───────────────────────────────────────────── */
+
+img, video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ── Focus ────────────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Scroll Snap (для Cases карусели) ─────────────────── */
+
+.scroll-snap-x {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-snap-x::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-snap-item {
+  scroll-snap-align: center;
+  flex-shrink: 0;
+}
+
+/* ── Telegram Theme Adaptation ────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text-primary: #f1f5f9;
+    --color-text-secondary: #94a3b8;
+    --color-bg-light: #0f172a;
+  }
+
+  html {
+    background-color: var(--color-bg-dark);
+    color: var(--color-text-primary);
+  }
+}
+
+/* ── Utility: safe area padding (notch devices) ───────── */
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}

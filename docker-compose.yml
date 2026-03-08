@@ -1,0 +1,171 @@
+# ============================================================
+# 🌿 Detox Course — Docker Compose
+# ============================================================
+# Запуск:  docker compose up -d --build
+# Логи:    docker compose logs -f
+# Стоп:    docker compose down
+# Сброс:   docker compose down -v (удалит данные!)
+# ============================================================
+
+name: detox-course
+
+services:
+  # -------------------- PostgreSQL --------------------
+  postgres:
+    image: postgres:17-alpine
+    container_name: detox-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-detox_course}
+      POSTGRES_USER: ${POSTGRES_USER:-detox_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Задай POSTGRES_PASSWORD в .env}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=ru_RU.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seeds/initial_content.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-detox_admin} -d ${POSTGRES_DB:-detox_course}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - detox-network
+
+  # -------------------- Redis --------------------
+  redis:
+    image: redis:7-alpine
+    container_name: detox-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+      --loglevel warning
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - detox-network
+
+  # -------------------- Telegram Bot (aiogram) --------------------
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: detox-bot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-detox_admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-detox_course}"
+      REDIS_URL: "redis://redis:6379/${REDIS_DB:-0}"
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - detox-network
+
+  # -------------------- Mini App API (FastAPI) --------------------
+  api:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile.api
+    container_name: detox-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-detox_admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-detox_course}"
+      REDIS_URL: "redis://redis:6379/${REDIS_DB:-0}"
+    volumes:
+      - uploads_data:/app/uploads
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - detox-network
+
+  # -------------------- Mini App Frontend (React) --------------------
+  miniapp:
+    build:
+      context: ./miniapp
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+        VITE_MODE: ${VITE_MODE:-production}
+    container_name: detox-miniapp
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks:
+      - detox-network
+
+  # -------------------- Nginx (reverse proxy + SSL) --------------------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: detox-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ssl_certs:/etc/letsencrypt
+      - uploads_data:/app/uploads:ro
+    depends_on:
+      - api
+      - miniapp
+    networks:
+      - detox-network
+
+  # -------------------- Certbot (SSL сертификаты) --------------------
+  certbot:
+    image: certbot/certbot:latest
+    container_name: detox-certbot
+    volumes:
+      - ssl_certs:/etc/letsencrypt
+      - ./nginx/webroot:/var/www/certbot:rw
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done'"
+    depends_on:
+      - nginx
+    networks:
+      - detox-network
+
+# -------------------- Volumes --------------------
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  uploads_data:
+    driver: local
+  ssl_certs:
+    driver: local
+
+# -------------------- Network --------------------
+networks:
+  detox-network:
+    driver: bridge
